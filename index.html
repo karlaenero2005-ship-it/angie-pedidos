@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b1429" />
+<title>Pedidos · Angie-line</title>
+<style>
+  :root {
+    --navy: #0b1429;
+    --orange: #f2740d;
+    --bg: #f4f1ea;
+    --card: #fff;
+    --ink: #1c140c;
+    --muted: #6d6256;
+    --line: #e6dfd4;
+    --green: #1f7a45;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  header {
+    background: var(--navy);
+    color: #fff;
+    padding: 0.9rem 1.1rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+  header h1 { margin: 0; font-size: 1.45rem; font-weight: 800; }
+  header p { margin: 0.1rem 0 0; color: #c9d0dc; font-size: 0.92rem; }
+  .grow { flex: 1; }
+  button {
+    font: inherit;
+    border: 0;
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  button.sound { background: var(--orange); color: #fff; }
+  button.sound.on { background: #243049; color: #d5dbe6; }
+  main { padding: 1rem; max-width: 920px; margin: 0 auto; }
+  .flash {
+    display: none;
+    background: var(--orange);
+    color: #fff;
+    font-size: 1.35rem;
+    font-weight: 800;
+    text-align: center;
+    padding: 0.85rem;
+  }
+  .flash.show { display: block; }
+  .card {
+    background: var(--card);
+    border-radius: 18px;
+    padding: 1rem 1.05rem 0.9rem;
+    margin-bottom: 0.85rem;
+    box-shadow: 0 8px 24px rgba(28, 20, 12, 0.06);
+    border-left: 8px solid var(--orange);
+  }
+  .card.nuevo { animation: pop 0.6s ease; }
+  @keyframes pop { from { transform: scale(0.98); background: #fff4e8; } }
+  .quien { font-size: 1.55rem; font-weight: 800; line-height: 1.15; }
+  .tel {
+    display: inline-block;
+    margin-top: 0.25rem;
+    color: var(--navy);
+    font-size: 1.2rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .prod { margin: 0.7rem 0 0.25rem; font-size: 1.25rem; font-weight: 750; }
+  .detalle { color: var(--muted); font-size: 1.05rem; }
+  .hora { color: var(--muted); font-size: 0.92rem; margin-top: 0.35rem; }
+  .card .entregar {
+    width: 100%;
+    margin-top: 0.85rem;
+    background: var(--green);
+    color: #fff;
+    font-size: 1.15rem;
+    min-height: 56px;
+  }
+  .vacio {
+    text-align: center;
+    color: var(--muted);
+    font-size: 1.15rem;
+    padding: 2.2rem 1rem;
+  }
+  h2 { font-size: 1rem; color: var(--muted); margin: 1.2rem 0 0.55rem; }
+  .hecho { border-left-color: #c9c2b6; opacity: 0.85; }
+  .hecho .entregar { display: none; }
+  .setup, .panel {
+    background: var(--card);
+    border-radius: 18px;
+    padding: 1.1rem;
+  }
+  label { display: block; font-weight: 700; margin-bottom: 0.35rem; }
+  input {
+    width: 100%;
+    font: inherit;
+    font-size: 1.05rem;
+    padding: 0.8rem;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+  }
+  .hint { color: var(--muted); font-size: 0.95rem; }
+  button.primary { background: var(--navy); color: #fff; margin-top: 0.8rem; width: 100%; min-height: 52px; }
+  footer { text-align: center; padding: 0.4rem 1rem 1.4rem; }
+  button.link { background: transparent; color: var(--muted); font-weight: 650; }
+  .err { color: #9d2a2a; font-weight: 700; }
+</style>
+</head>
+<body>
+<header>
+  <div class="grow">
+    <h1>Pedidos</h1>
+    <p id="sub">Carnicería · esperando avisos</p>
+  </div>
+  <button type="button" class="sound" id="btn-sonido">Activar sonido</button>
+</header>
+<div class="flash" id="flash">Llegó un pedido</div>
+<main id="app"></main>
+<footer><button type="button" class="link" id="btn-prueba">Probar aviso</button></footer>
+<script>
+const PROYECTO = "https://pambysjusmroryomhiwt.supabase.co";
+const CLAVE_KEY = "angie-tablet-anon";
+let clave = localStorage.getItem(CLAVE_KEY) || "";
+let sonido = false;
+let conocidos = null;
+let audioCtx = null;
+
+const app = document.getElementById("app");
+const sub = document.getElementById("sub");
+const flash = document.getElementById("flash");
+const btnSonido = document.getElementById("btn-sonido");
+
+btnSonido.onclick = () => {
+  sonido = true;
+  audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+  audioCtx.resume();
+  tono();
+  btnSonido.textContent = "Sonido listo";
+  btnSonido.classList.add("on");
+};
+
+document.getElementById("btn-prueba").onclick = async () => {
+  if (!clave) return alert("Primero pega la clave pública.");
+  if (!sonido) btnSonido.click();
+  const r = await api("pedidos_telefono", {
+    method: "POST",
+    body: JSON.stringify({
+      nombre: "Pedido de prueba",
+      telefono: "",
+      producto: "1 kg de molida especial",
+      detalle: "Así se escucha y se ve un aviso nuevo.",
+      estado: "pendiente"
+    })
+  });
+  if (!r.ok) alert(r.error || "No se pudo crear la prueba.");
+  else cargar();
+};
+
+function tono() {
+  if (!audioCtx) return;
+  const ahora = audioCtx.currentTime;
+  [0, 0.22, 0.44].forEach((t, i) => {
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = "sine";
+    o.frequency.value = i === 1 ? 740 : 880;
+    g.gain.setValueAtTime(0.0001, ahora + t);
+    g.gain.exponentialRampToValueAtTime(0.25, ahora + t + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, ahora + t + 0.28);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(ahora + t);
+    o.stop(ahora + t + 0.3);
+  });
+}
+
+function hora(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", timeZone: "America/Chihuahua" });
+}
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch(PROYECTO + "/rest/v1/" + path, {
+    method: opts.method || "GET",
+    headers: {
+      apikey: clave,
+      Authorization: "Bearer " + clave,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal"
+    },
+    body: opts.body
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    return { ok: false, error: t.slice(0, 180) || ("HTTP " + res.status) };
+  }
+  const txt = await res.text();
+  let data = [];
+  try { data = txt ? JSON.parse(txt) : []; } catch { data = []; }
+  return { ok: true, data };
+}
+
+function pintarSetup(msg) {
+  sub.textContent = "Falta la clave pública";
+  app.innerHTML = `<div class="setup">
+    <label>Clave pública de la cuenta provisional</label>
+    <p class="hint">En Supabase: Project Settings → API Keys. Pega la clave <strong>anon</strong> o <strong>publishable</strong>. No pegues la clave secreta.</p>
+    <input id="clave" autocomplete="off" placeholder="eyJ... o sb_publishable_..." />
+    <button class="primary" id="guardar-clave" type="button">Guardar y entrar</button>
+    ${msg ? `<p class="err">${esc(msg)}</p>` : ""}
+  </div>`;
+  document.getElementById("guardar-clave").onclick = () => {
+    const v = document.getElementById("clave").value.trim();
+    if (!v) return;
+    localStorage.setItem(CLAVE_KEY, v);
+    clave = v;
+    conocidos = null;
+    cargar();
+  };
+}
+
+function tarjeta(p, nueva) {
+  const tel = String(p.telefono || "").trim();
+  const telHtml = tel
+    ? `<a class="tel" href="tel:${esc(tel)}">${esc(tel)}</a>`
+    : `<div class="detalle">Sin teléfono</div>`;
+  const hecho = p.estado === "entregado";
+  return `<article class="card ${hecho ? "hecho" : ""} ${nueva ? "nuevo" : ""}">
+    <div class="quien">${esc(p.nombre || "Sin nombre")}</div>
+    ${telHtml}
+    <div class="prod">${esc(p.producto || "")}</div>
+    ${p.detalle ? `<div class="detalle">${esc(p.detalle)}</div>` : ""}
+    <div class="hora">${esc(hora(p.creado))}${hecho && p.entregado_en ? " · entregado " + esc(hora(p.entregado_en)) : ""}</div>
+    ${hecho ? "" : `<button class="entregar" type="button" data-id="${p.id}">Entregado</button>`}
+  </article>`;
+}
+
+async function entregar(id) {
+  const r = await api("pedidos_telefono?id=eq." + encodeURIComponent(id), {
+    method: "PATCH",
+    body: JSON.stringify({ estado: "entregado", entregado_en: new Date().toISOString() })
+  });
+  if (!r.ok) alert(r.error || "No se pudo marcar.");
+  else cargar();
+}
+
+async function cargar() {
+  if (!clave) { pintarSetup(); return; }
+  const r = await api("pedidos_telefono?select=*&order=creado.desc&limit=80");
+  if (!r.ok) { pintarSetup("Esa clave no pudo leer los pedidos. Usa la clave pública, no la secreta."); return; }
+  const rows = Array.isArray(r.data) ? r.data : [];
+  const pend = rows.filter((p) => p.estado !== "entregado");
+  const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Chihuahua" });
+  const hechos = rows.filter((p) => p.estado === "entregado" && String(p.entregado_en || p.creado).slice(0, 10) === hoy);
+  const ids = new Set(pend.map((p) => p.id));
+  let nuevos = new Set();
+  if (conocidos) {
+    for (const id of ids) if (!conocidos.has(id)) nuevos.add(id);
+    if (nuevos.size) {
+      flash.classList.add("show");
+      if (sonido) tono();
+      setTimeout(() => flash.classList.remove("show"), 4000);
+    }
+  }
+  conocidos = ids;
+  sub.textContent = pend.length ? pend.length + (pend.length === 1 ? " pendiente" : " pendientes") : "Sin pendientes";
+  app.innerHTML = `
+    ${pend.length ? pend.map((p) => tarjeta(p, nuevos.has(p.id))).join("") : `<div class="vacio">Cuando entre un pedido por teléfono, aparece aquí con sonido.</div>`}
+    ${hechos.length ? `<h2>Entregados hoy</h2>${hechos.map((p) => tarjeta(p, false)).join("")}` : ""}
+  `;
+  app.querySelectorAll(".entregar").forEach((b) => {
+    b.onclick = () => entregar(b.dataset.id);
+  });
+}
+
+cargar();
+setInterval(cargar, 4000);
+</script>
+</body>
+</html>
