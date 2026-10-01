@@ -3,158 +3,191 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#14181f" />
-<title>Pedidos · Angie-line</title>
+<meta name="theme-color" content="#1b2744" />
+<title>Pedidos · Mayoreo</title>
 <style>
   :root {
-    --ink: #1a1612;
-    --muted: #6f675f;
-    --line: #e7e1d8;
-    --bg: #f3efe8;
+    --navy: #1b2744;
+    --ink: #1c2433;
+    --muted: #6b7380;
+    --line: #e6e8ee;
+    --bg: #f4f6f8;
     --card: #fff;
-    --navy: #14181f;
-    --orange: #e86a12;
-    --green: #1d7a45;
+    --green: #178a4a;
+    --red: #b42318;
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; min-height: 100%; }
+  html, body { margin: 0; height: 100%; }
   body {
     font-family: "Segoe UI", system-ui, sans-serif;
     background: var(--bg);
     color: var(--ink);
+    display: flex;
+    min-height: 100%;
   }
-  header {
+  .barra {
+    width: 108px;
+    flex: 0 0 108px;
     background: var(--navy);
     color: #fff;
-    padding: 1rem 1.15rem;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 0.75rem;
+    padding: 0.8rem 0.55rem 0.7rem;
+    gap: 0.45rem;
   }
-  header h1 { margin: 0; font-size: 1.35rem; font-weight: 750; letter-spacing: -0.02em; }
-  header p { margin: 0.15rem 0 0; color: #b7c0cc; font-size: 0.95rem; }
-  .grow { flex: 1; }
-  button { font: inherit; border: 0; border-radius: 12px; cursor: pointer; font-weight: 750; }
-  button.sound { background: var(--orange); color: #fff; padding: 0.75rem 0.95rem; }
-  button.sound.on { background: #2a3140; color: #d5dbe6; }
-  select.sonido {
+  .logo {
+    width: 76px;
+    height: 76px;
+    border-radius: 18px;
+    display: block;
+  }
+  nav { display: flex; flex-direction: column; gap: 0.35rem; width: 100%; margin-top: 0.4rem; }
+  nav button, .pie button, .pie select {
     font: inherit;
-    font-weight: 750;
     border: 0;
     border-radius: 12px;
-    padding: 0.75rem 0.7rem;
-    background: #2a3140;
+    cursor: pointer;
+  }
+  nav button {
+    background: transparent;
+    color: #d5dceb;
+    padding: 0.7rem 0.3rem;
+    font-weight: 700;
+    font-size: 0.82rem;
+  }
+  nav button.on { background: rgba(255,255,255,0.14); color: #fff; }
+  .pie { margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.4rem; }
+  .pie select, .pie button {
+    width: 100%;
+    background: #2a3858;
     color: #fff;
+    padding: 0.55rem 0.3rem;
+    font-weight: 700;
+    font-size: 0.78rem;
+  }
+  .lienzo { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .tope {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.85rem 1rem 0.4rem;
+  }
+  .tope h1 { margin: 0; font-size: 1.35rem; font-weight: 750; letter-spacing: -0.02em; }
+  #sub { margin: 0.15rem 0 0; color: var(--muted); font-size: 0.92rem; }
+  .cuenta {
+    margin-left: auto;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    font-weight: 800;
+    font-size: 0.9rem;
   }
   .flash {
     display: none;
-    background: var(--orange);
+    margin: 0 1rem;
+    background: #1b2744;
     color: #fff;
-    font-size: 1.25rem;
     font-weight: 800;
     text-align: center;
-    padding: 0.8rem;
+    border-radius: 12px;
+    padding: 0.55rem;
   }
   .flash.show { display: block; }
-  main { padding: 1rem 1rem 2rem; max-width: 1200px; margin: 0 auto; }
+  main { padding: 0.7rem 1rem 1.4rem; }
   .tablero {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 0.9rem;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0.75rem;
   }
-  .card {
+  .ticket {
     background: var(--card);
-    border-radius: 20px;
-    padding: 1rem 1rem 0.95rem;
-    box-shadow: 0 10px 28px rgba(20, 24, 31, 0.06);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 0.85rem 0.9rem 0.8rem;
     display: flex;
     flex-direction: column;
-    min-height: 220px;
+    min-height: 196px;
   }
-  .card.nuevo { outline: 3px solid #ffd7b8; }
-  .top { display: flex; gap: 0.8rem; align-items: flex-start; }
-  .num {
-    flex: 0 0 auto;
-    width: 3.1rem;
-    height: 3.1rem;
-    border-radius: 14px;
-    background: var(--orange);
-    color: #fff;
-    display: grid;
-    place-items: center;
-    font-size: 1.45rem;
+  .ticket.nuevo { border-color: #f0b429; }
+  .cabeza { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+  .folio { font-size: 1.55rem; font-weight: 800; letter-spacing: -0.03em; }
+  .estado {
+    font-size: 0.75rem;
     font-weight: 800;
+    border-radius: 999px;
+    padding: 0.2rem 0.5rem;
+    background: #fff4e5;
+    color: #9a5300;
   }
-  .quien { font-size: 1.28rem; font-weight: 800; line-height: 1.15; }
-  .tel {
-    display: inline-block;
-    margin-top: 0.2rem;
-    color: var(--navy);
-    font-size: 1.05rem;
-    font-weight: 700;
-    text-decoration: none;
-  }
-  .prod {
-    margin: 0.85rem 0 0;
-    font-size: 1.12rem;
-    font-weight: 700;
-    white-space: pre-line;
-    line-height: 1.35;
-  }
-  .detalle { color: var(--muted); margin-top: 0.35rem; white-space: pre-line; }
-  .hora { color: var(--muted); font-size: 0.9rem; margin-top: auto; padding-top: 0.7rem; }
-  .card .entregar {
+  .estado.entregado { background: #e8f7ee; color: var(--green); }
+  .estado.cancelado { background: #fdecea; color: var(--red); }
+  .quien { margin-top: 0.55rem; font-size: 1.12rem; font-weight: 800; line-height: 1.2; }
+  .tel { color: var(--navy); font-weight: 700; text-decoration: none; font-size: 0.98rem; }
+  .prod { margin-top: 0.55rem; font-weight: 650; white-space: pre-line; line-height: 1.35; }
+  .detalle { color: var(--muted); margin-top: 0.25rem; white-space: pre-line; font-size: 0.92rem; }
+  .hora { color: var(--muted); font-size: 0.82rem; margin-top: auto; padding-top: 0.55rem; }
+  .entregar {
+    margin-top: 0.7rem;
     width: 100%;
-    margin-top: 0.8rem;
+    min-height: 46px;
+    border: 0;
+    border-radius: 12px;
     background: var(--green);
     color: #fff;
-    font-size: 1.05rem;
-    min-height: 52px;
-  }
-  h2 { font-size: 0.95rem; color: var(--muted); margin: 1.3rem 0 0.6rem; font-weight: 750; }
-  .vacio { text-align: center; color: var(--muted); font-size: 1.1rem; padding: 2.4rem 1rem; }
-  .setup { background: var(--card); border-radius: 20px; padding: 1.1rem; }
-  label { display: block; font-weight: 750; margin-bottom: 0.35rem; }
-  input {
-    width: 100%;
     font: inherit;
-    font-size: 1.05rem;
-    padding: 0.8rem;
-    border-radius: 12px;
-    border: 1px solid var(--line);
+    font-weight: 800;
+    cursor: pointer;
   }
+  h2 { font-size: 0.9rem; color: var(--muted); margin: 1rem 0 0.5rem; }
+  .vacio { text-align: center; color: var(--muted); padding: 2.5rem 1rem; }
+  .setup { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 1rem; max-width: 520px; }
+  label { display: block; font-weight: 750; margin-bottom: 0.3rem; }
+  input { width: 100%; font: inherit; padding: 0.75rem; border-radius: 12px; border: 1px solid var(--line); }
   .hint { color: var(--muted); }
-  button.primary { background: var(--navy); color: #fff; margin-top: 0.8rem; width: 100%; min-height: 52px; }
-  footer { text-align: center; padding: 0 1rem 1.4rem; }
-  button.link { background: transparent; color: var(--muted); }
-  .err { color: #9d2a2a; font-weight: 700; }
+  button.primary { margin-top: 0.7rem; width: 100%; min-height: 48px; border: 0; border-radius: 12px; background: var(--navy); color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+  .err { color: var(--red); font-weight: 700; }
+  .prueba { background: transparent; border: 0; color: var(--muted); font: inherit; cursor: pointer; padding: 0.2rem 1rem 1rem; }
 </style>
 </head>
 <body>
-<header>
-  <div class="grow">
-    <h1>Pedidos de hoy</h1>
-    <p id="sub">Carnicería</p>
+<aside class="barra">
+  <img class="logo" src="logo.png" alt="Mayoreo de Carne de Res" width="76" height="76" />
+  <nav>
+    <button type="button" class="on" data-vista="curso">En curso</button>
+    <button type="button" data-vista="cerrados">Cerrados</button>
+    <button type="button" data-vista="quejas">Quejas</button>
+  </nav>
+  <div class="pie">
+    <select id="tipo-sonido" aria-label="Sonido del aviso">
+      <option value="alarma">Alarma</option>
+      <option value="timbre">Timbre</option>
+      <option value="sirena">Sirena</option>
+      <option value="campana">Campana</option>
+      <option value="golpes">Golpes</option>
+    </select>
+    <button type="button" id="btn-sonido">Probar</button>
   </div>
-  <button type="button" class="sound" id="btn-vista">Quejas</button>
-  <select class="sonido" id="tipo-sonido" aria-label="Sonido del aviso">
-    <option value="alarma">Alarma</option>
-    <option value="timbre">Timbre</option>
-    <option value="sirena">Sirena</option>
-    <option value="campana">Campana</option>
-    <option value="golpes">Golpes</option>
-  </select>
-  <button type="button" class="sound" id="btn-sonido">Probar sonido</button>
-</header>
-<div class="flash" id="flash">Llegó un pedido</div>
-<main id="app"></main>
-<footer><button type="button" class="link" id="btn-prueba">Probar aviso</button></footer>
+</aside>
+<div class="lienzo">
+  <div class="tope">
+    <div>
+      <h1 id="titulo">Pedidos de hoy</h1>
+      <p id="sub">Mayoreo de Carne de Res</p>
+    </div>
+    <div class="cuenta" id="cuenta">0</div>
+  </div>
+  <div class="flash" id="flash">Llegó un pedido</div>
+  <main id="app"></main>
+  <button type="button" class="prueba" id="btn-prueba">Probar aviso</button>
+</div>
 <script>
 const PROYECTO = "https://pambysjusmroryomhiwt.supabase.co";
 const CLAVE_KEY = "angie-tablet-anon";
-let clave = localStorage.getItem(CLAVE_KEY) || "";
-let vista = "pedidos";
 const SONIDO_KEY = "angie-tablet-sonido";
+let clave = localStorage.getItem(CLAVE_KEY) || "";
+let vista = "curso";
 let sonido = false;
 let tipoSonido = localStorage.getItem(SONIDO_KEY) || "alarma";
 let conocidos = null;
@@ -162,6 +195,8 @@ let audioCtx = null;
 
 const app = document.getElementById("app");
 const sub = document.getElementById("sub");
+const cuenta = document.getElementById("cuenta");
+const titulo = document.getElementById("titulo");
 const flash = document.getElementById("flash");
 const btnSonido = document.getElementById("btn-sonido");
 const tipoSonidoEl = document.getElementById("tipo-sonido");
@@ -172,20 +207,21 @@ tipoSonidoEl.onchange = () => {
   activarSonido();
 };
 
-document.getElementById("btn-vista").onclick = () => {
-  vista = vista === "pedidos" ? "quejas" : "pedidos";
-  document.getElementById("btn-vista").textContent = vista === "pedidos" ? "Quejas" : "Pedidos";
-  conocidos = null;
-  cargar();
-};
+document.querySelectorAll("nav button").forEach((b) => {
+  b.onclick = () => {
+    vista = b.dataset.vista;
+    document.querySelectorAll("nav button").forEach((x) => x.classList.toggle("on", x === b));
+    conocidos = null;
+    cargar();
+  };
+});
 
 function activarSonido() {
   sonido = true;
   audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
   audioCtx.resume();
   tono();
-  btnSonido.textContent = "Sonido listo";
-  btnSonido.classList.add("on");
+  btnSonido.textContent = "Listo";
 }
 
 btnSonido.onclick = activarSonido;
@@ -204,7 +240,7 @@ document.getElementById("btn-prueba").onclick = async () => {
     })
   });
   if (!r.ok) alert(r.error || "No se pudo crear la prueba.");
-  else cargar();
+  else { vista = "curso"; document.querySelector('[data-vista="curso"]').click(); }
 };
 
 function nota(inicio, frecuencia, duracion, volumen, tipo) {
@@ -291,7 +327,9 @@ async function api(path, opts = {}) {
 }
 
 function pintarSetup(msg) {
+  titulo.textContent = "Pedidos de hoy";
   sub.textContent = "Falta la clave pública";
+  cuenta.textContent = "–";
   app.innerHTML = `<div class="setup">
     <label>Clave pública de la cuenta provisional</label>
     <p class="hint">En Supabase: Project Settings → API Keys. Pega la clave <strong>anon</strong>. No pegues la clave secreta.</p>
@@ -309,24 +347,22 @@ function pintarSetup(msg) {
   };
 }
 
-function tarjeta(p, nueva) {
+function ticket(p, nueva, accion) {
   const tel = String(p.telefono || "").replace(/\D/g, "");
-  const telHtml = tel
-    ? `<a class="tel" href="tel:${esc(tel)}">${esc(grupos(tel))}</a>`
-    : `<div class="detalle">Sin teléfono</div>`;
+  const telHtml = tel ? `<a class="tel" href="tel:${esc(tel)}">${esc(grupos(tel))}</a>` : `<div class="detalle">Sin teléfono</div>`;
   const num = p.numero != null ? esc(p.numero) : "–";
-  return `<article class="card ${nueva ? "nuevo" : ""}">
-    <div class="top">
-      <div class="num">${num}</div>
-      <div>
-        <div class="quien">${esc(p.nombre || "Sin nombre")}</div>
-        ${telHtml}
-      </div>
+  const etiqueta = p.estado === "entregado" ? "Entregado" : p.estado === "cancelado" ? "Cancelado" : "En curso";
+  return `<article class="ticket ${nueva ? "nuevo" : ""}">
+    <div class="cabeza">
+      <div class="folio">#${num}</div>
+      <span class="estado ${esc(p.estado || "")}">${etiqueta}</span>
     </div>
+    <div class="quien">${esc(p.nombre || "Sin nombre")}</div>
+    ${telHtml}
     <div class="prod">${esc(p.producto || "")}</div>
     ${p.detalle ? `<div class="detalle">${esc(p.detalle)}</div>` : ""}
     <div class="hora">${esc(hora(p.creado))}</div>
-    <button class="entregar" type="button" data-id="${p.id}">Entregado</button>
+    ${accion ? `<button class="entregar" type="button" data-id="${p.id}">Entregado</button>` : ""}
   </article>`;
 }
 
@@ -340,16 +376,19 @@ async function entregar(id) {
 }
 
 async function cargarQuejas() {
+  titulo.textContent = "Quejas";
   const r = await api("quejas?select=*&order=creado.desc&limit=40");
   if (!r.ok) {
-    sub.textContent = "Quejas";
+    sub.textContent = "Apartado no disponible";
+    cuenta.textContent = "0";
     app.innerHTML = `<div class="vacio">Todavía no está el apartado de quejas.</div>`;
     return;
   }
   const rows = Array.isArray(r.data) ? r.data : [];
   const pend = rows.filter((q) => q.estado !== "revisada");
-  sub.textContent = pend.length ? pend.length + (pend.length === 1 ? " queja pendiente" : " quejas pendientes") : "Sin quejas";
-  app.innerHTML = pend.length ? `<div class="tablero">${pend.map((q) => `<article class="card">
+  sub.textContent = pend.length ? "Pendientes de revisar" : "Sin quejas";
+  cuenta.textContent = String(pend.length);
+  app.innerHTML = pend.length ? `<div class="tablero">${pend.map((q) => `<article class="ticket">
     <div class="quien">${esc(q.nombre || "Sin nombre")}</div>
     <div class="detalle">${esc(q.telefono || "Sin teléfono")}</div>
     <div class="prod">${esc(q.queja || "")}</div>
@@ -370,14 +409,16 @@ async function cargarQuejas() {
 async function cargar() {
   if (!clave) { pintarSetup(); return; }
   if (vista === "quejas") return cargarQuejas();
-  const r = await api("pedidos_telefono?select=*&estado=eq.pendiente&order=numero.asc&limit=200");
+  const r = await api("pedidos_telefono?select=*&order=creado.desc&limit=200");
   if (!r.ok) { pintarSetup("Esa clave no pudo leer los pedidos. Usa la clave pública, no la secreta."); return; }
   const rows = Array.isArray(r.data) ? r.data : [];
   const hoy = dia();
-  const deHoy = rows.filter((p) => dia(p.creado) === hoy).sort((a, b) => (a.numero || 0) - (b.numero || 0));
-  const otros = rows.filter((p) => dia(p.creado) !== hoy);
+  const pendientes = rows.filter((p) => p.estado === "pendiente");
+  const deHoy = pendientes.filter((p) => dia(p.creado) === hoy).sort((a, b) => (a.numero || 0) - (b.numero || 0));
+  const otros = pendientes.filter((p) => dia(p.creado) !== hoy);
+  const cerrados = rows.filter((p) => (p.estado === "entregado" || p.estado === "cancelado") && (dia(p.entregado_en || p.cancelado_en || p.creado) === hoy));
   const ids = new Set(deHoy.map((p) => p.id));
-  let nuevos = new Set();
+  const nuevos = new Set();
   if (conocidos) {
     for (const id of ids) if (!conocidos.has(id)) nuevos.add(id);
     if (nuevos.size) {
@@ -386,15 +427,26 @@ async function cargar() {
       setTimeout(() => flash.classList.remove("show"), 4000);
     }
   }
-  conocidos = ids;
-  sub.textContent = deHoy.length ? deHoy.length + (deHoy.length === 1 ? " pendiente hoy" : " pendientes hoy") : "Sin pendientes hoy";
+  if (vista === "curso") conocidos = ids;
+
+  if (vista === "cerrados") {
+    titulo.textContent = "Cerrados hoy";
+    sub.textContent = "Entregados y cancelados";
+    cuenta.textContent = String(cerrados.length);
+    app.innerHTML = cerrados.length
+      ? `<div class="tablero">${cerrados.map((p) => ticket(p, false, false)).join("")}</div>`
+      : `<div class="vacio">Hoy todavía no hay pedidos entregados ni cancelados.</div>`;
+    return;
+  }
+
+  titulo.textContent = "Pedidos de hoy";
+  sub.textContent = deHoy.length ? "En curso, de izquierda a derecha" : "Sin pendientes hoy";
+  cuenta.textContent = String(deHoy.length);
   app.innerHTML = `
-    ${deHoy.length ? `<div class="tablero">${deHoy.map((p) => tarjeta(p, nuevos.has(p.id))).join("")}</div>` : `<div class="vacio">Cuando entre un pedido por teléfono, aparece aquí con su número del día.</div>`}
-    ${otros.length ? `<h2>Pendientes de otro día</h2><div class="tablero">${otros.map((p) => tarjeta(p, false)).join("")}</div>` : ""}
+    ${deHoy.length ? `<div class="tablero">${deHoy.map((p) => ticket(p, nuevos.has(p.id), true)).join("")}</div>` : `<div class="vacio">Cuando entre un pedido por teléfono, aparece aquí con su número del día.</div>`}
+    ${otros.length ? `<h2>Pendientes de otro día</h2><div class="tablero">${otros.map((p) => ticket(p, false, true)).join("")}</div>` : ""}
   `;
-  app.querySelectorAll(".entregar").forEach((b) => {
-    b.onclick = () => entregar(b.dataset.id);
-  });
+  app.querySelectorAll(".entregar").forEach((b) => { b.onclick = () => entregar(b.dataset.id); });
 }
 
 cargar();
