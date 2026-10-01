@@ -80,17 +80,16 @@
     cursor: pointer;
   }
   .sonido.on { border-color: var(--navy); background: #eef2f8; }
-  .probar-sonido {
+  .probar-sonido, .guardar-cambios {
     margin-top: 0.35rem;
     min-height: 48px;
-    border: 0;
     border-radius: 14px;
-    background: var(--navy);
-    color: #fff;
     font: inherit;
     font-weight: 800;
     cursor: pointer;
   }
+  .probar-sonido { border: 1px solid var(--navy); background: #fff; color: var(--navy); }
+  .guardar-cambios { border: 0; background: var(--navy); color: #fff; }
   .lienzo { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .tope {
     display: flex;
@@ -153,9 +152,9 @@
   .prod { margin-top: 0.55rem; font-weight: 650; white-space: pre-line; line-height: 1.35; }
   .detalle { color: var(--muted); margin-top: 0.25rem; white-space: pre-line; font-size: 0.92rem; }
   .hora { color: var(--muted); font-size: 0.82rem; margin-top: auto; padding-top: 0.55rem; }
+  .acciones { display: flex; gap: 0.45rem; margin-top: 0.7rem; }
   .entregar {
-    margin-top: 0.7rem;
-    width: 100%;
+    flex: 1;
     min-height: 46px;
     border: 0;
     border-radius: 12px;
@@ -165,6 +164,41 @@
     font-weight: 800;
     cursor: pointer;
   }
+  .basura {
+    flex: 0 0 46px;
+    width: 46px;
+    height: 46px;
+    border: 1px solid #f0c2be;
+    border-radius: 12px;
+    background: #fff;
+    color: var(--red);
+    padding: 0;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+  }
+  .fondo {
+    position: fixed;
+    inset: 0;
+    background: rgba(18, 24, 38, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    padding: 1rem;
+  }
+  .fondo[hidden] { display: none; }
+  .dialogo {
+    background: #fff;
+    border-radius: 16px;
+    padding: 1.15rem;
+    width: min(380px, 100%);
+  }
+  .dialogo p { margin: 0 0 1rem; font-weight: 750; font-size: 1.05rem; line-height: 1.35; }
+  .dialogo .fila { display: flex; gap: 0.5rem; }
+  .dialogo button { flex: 1; min-height: 46px; border-radius: 12px; font: inherit; font-weight: 800; cursor: pointer; }
+  .dialogo .no { border: 1px solid var(--line); background: #fff; color: var(--ink); }
+  .dialogo .si { border: 0; background: var(--red); color: #fff; }
   h2 { font-size: 0.9rem; color: var(--muted); margin: 1rem 0 0.5rem; }
   .vacio { text-align: center; color: var(--muted); padding: 2.5rem 1rem; }
   .setup { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 1rem; max-width: 520px; }
@@ -173,7 +207,6 @@
   .hint { color: var(--muted); }
   button.primary { margin-top: 0.7rem; width: 100%; min-height: 48px; border: 0; border-radius: 12px; background: var(--navy); color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
   .err { color: var(--red); font-weight: 700; }
-  .prueba { background: transparent; border: 0; color: var(--muted); font: inherit; cursor: pointer; padding: 0.2rem 1rem 1rem; }
 </style>
 </head>
 <body>
@@ -198,7 +231,15 @@
   </div>
   <div class="flash" id="flash">Llegó un pedido</div>
   <main id="app"></main>
-  <button type="button" class="prueba" id="btn-prueba">Probar aviso</button>
+</div>
+<div class="fondo" id="confirmar" hidden>
+  <div class="dialogo" role="dialog" aria-modal="true" aria-labelledby="confirmar-texto">
+    <p id="confirmar-texto">¿Cancelar este pedido?</p>
+    <div class="fila">
+      <button type="button" class="no" id="confirmar-no">No, dejarlo</button>
+      <button type="button" class="si" id="confirmar-si">Sí, cancelar</button>
+    </div>
+  </div>
 </div>
 <script>
 const PROYECTO = "https://pambysjusmroryomhiwt.supabase.co";
@@ -209,6 +250,8 @@ let vista = "curso";
 let ajustesPintado = false;
 let sonido = false;
 let tipoSonido = localStorage.getItem(SONIDO_KEY) || "alarma";
+let sonidoElegido = tipoSonido;
+let cancelarId = null;
 let conocidos = null;
 let audioCtx = null;
 
@@ -243,6 +286,7 @@ document.querySelectorAll("nav button").forEach((b) => {
 
 btnAjustes.onclick = () => {
   vista = "ajustes";
+  sonidoElegido = tipoSonido;
   ajustesPintado = false;
   marcarMenus();
   cargar();
@@ -261,35 +305,27 @@ function pintarAjustes() {
   cuenta.textContent = "";
   app.innerHTML = `<div class="ajustes">
     <h2>Sonido</h2>
-    ${sonidos.map(([id, nombre]) => `<button type="button" class="sonido ${id === tipoSonido ? "on" : ""}" data-sonido="${id}">${nombre}</button>`).join("")}
+    ${sonidos.map(([id, nombre]) => `<button type="button" class="sonido ${id === sonidoElegido ? "on" : ""}" data-sonido="${id}">${nombre}</button>`).join("")}
     <button type="button" class="probar-sonido" id="probar-sonido">Probar sonido</button>
+    <button type="button" class="guardar-cambios" id="guardar-sonido">Guardar cambios</button>
   </div>`;
   app.querySelectorAll(".sonido").forEach((b) => {
     b.onclick = () => {
-      tipoSonido = b.dataset.sonido;
-      localStorage.setItem(SONIDO_KEY, tipoSonido);
-      activarSonido();
+      sonidoElegido = b.dataset.sonido;
       pintarAjustes();
     };
   });
-  document.getElementById("probar-sonido").onclick = activarSonido;
-}
-
-document.getElementById("btn-prueba").onclick = async () => {
-  if (!clave) return alert("Primero pega la clave pública.");
-  if (!sonido) activarSonido();
-  const r = await api("pedidos_telefono", {
-    method: "POST",
-    body: JSON.stringify({
-      nombre: "Pedido de prueba",
-      telefono: "6140000000",
-      producto: "1 kg de molida especial",
-      detalle: "Aviso de prueba.",
-      estado: "pendiente"
-    })
-  });
-  if (!r.ok) alert(r.error || "No se pudo crear la prueba.");
-  else { vista = "curso"; document.querySelector('[data-vista="curso"]').click(); }
+  document.getElementById("probar-sonido").onclick = () => {
+    const anterior = tipoSonido;
+    tipoSonido = sonidoElegido;
+    activarSonido();
+    tipoSonido = anterior;
+  };
+  document.getElementById("guardar-sonido").onclick = () => {
+    tipoSonido = sonidoElegido;
+    localStorage.setItem(SONIDO_KEY, tipoSonido);
+    sub.textContent = "Cambios guardados";
+  };
 };
 
 function nota(inicio, frecuencia, duracion, volumen, tipo) {
@@ -305,13 +341,14 @@ function nota(inicio, frecuencia, duracion, volumen, tipo) {
   o.stop(inicio + duracion + 0.02);
 }
 
-function tono() {
+function tono(cual) {
   if (!audioCtx) return;
+  const tipo = cual || tipoSonido;
   const t = audioCtx.currentTime;
-  if (tipoSonido === "timbre") {
+  if (tipo === "timbre") {
     nota(t, 523, 0.45, 0.7, "triangle");
     nota(t + 0.5, 659, 0.7, 0.75, "triangle");
-  } else if (tipoSonido === "sirena") {
+  } else if (tipo === "sirena") {
     const o = audioCtx.createOscillator();
     const g = audioCtx.createGain();
     o.type = "sawtooth";
@@ -325,9 +362,9 @@ function tono() {
     o.connect(g).connect(audioCtx.destination);
     o.start(t);
     o.stop(t + 1);
-  } else if (tipoSonido === "campana") {
+  } else if (tipo === "campana") {
     [0, 0.35, 0.7].forEach((d) => nota(t + d, 880, 0.45, 0.8, "sine"));
-  } else if (tipoSonido === "golpes") {
+  } else if (tipo === "golpes") {
     [0, 0.18, 0.36, 0.54].forEach((d) => nota(t + d, 180, 0.12, 0.9, "square"));
   } else {
     [0, 0.16, 0.32, 0.48, 0.64, 0.8].forEach((d, i) => nota(t + d, i % 2 ? 988 : 784, 0.12, 0.55, "square"));
@@ -411,9 +448,46 @@ function ticket(p, nueva, accion) {
     <div class="prod">${esc(p.producto || "")}</div>
     ${p.detalle ? `<div class="detalle">${esc(p.detalle)}</div>` : ""}
     <div class="hora">${esc(hora(p.creado))}</div>
-    ${accion ? `<button class="entregar" type="button" data-id="${p.id}">Entregado</button>` : ""}
+    ${accion ? `<div class="acciones">
+      <button class="entregar" type="button" data-id="${p.id}">Entregado</button>
+      <button class="basura" type="button" data-id="${p.id}" data-num="${num}" data-nombre="${esc(p.nombre || "Sin nombre")}" aria-label="Cancelar pedido">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h5v2H3V5h5l1-2zm-1 6h2v9H8V9zm4 0h2v9h-2V9zm4 0h2v9h-2V9zM6 9h1l1 12h8l1-12h1v-2H6v2z"/></svg>
+      </button>
+    </div>` : ""}
   </article>`;
 }
+
+function abrirCancelar(id, num, nombre) {
+  cancelarId = id;
+  document.getElementById("confirmar-texto").textContent = "¿Cancelar el pedido #" + num + " de " + nombre + "?";
+  document.getElementById("confirmar").hidden = false;
+}
+
+function cerrarCancelar() {
+  cancelarId = null;
+  document.getElementById("confirmar").hidden = true;
+}
+
+async function confirmarCancelar() {
+  const id = cancelarId;
+  if (!id) return;
+  const boton = document.getElementById("confirmar-si");
+  boton.disabled = true;
+  const r = await api("pedidos_telefono?id=eq." + encodeURIComponent(id), {
+    method: "PATCH",
+    body: JSON.stringify({ estado: "cancelado", cancelado_en: new Date().toISOString() })
+  });
+  boton.disabled = false;
+  cerrarCancelar();
+  if (!r.ok) alert(r.error || "No se pudo cancelar.");
+  else cargar();
+}
+
+document.getElementById("confirmar-no").onclick = cerrarCancelar;
+document.getElementById("confirmar-si").onclick = confirmarCancelar;
+document.getElementById("confirmar").onclick = (e) => {
+  if (e.target.id === "confirmar") cerrarCancelar();
+};
 
 async function entregar(id) {
   const r = await api("pedidos_telefono?id=eq." + encodeURIComponent(id), {
@@ -509,6 +583,9 @@ async function cargar() {
     ${otros.length ? `<h2>Pendientes de otro día</h2><div class="tablero">${otros.map((p) => ticket(p, false, true)).join("")}</div>` : ""}
   `;
   app.querySelectorAll(".entregar").forEach((b) => { b.onclick = () => entregar(b.dataset.id); });
+  app.querySelectorAll(".basura").forEach((b) => {
+    b.onclick = () => abrirCancelar(b.dataset.id, b.dataset.num, b.dataset.nombre);
+  });
 }
 
 cargar();
