@@ -43,7 +43,7 @@
     display: block;
   }
   nav { display: flex; flex-direction: column; gap: 0.35rem; width: 100%; margin-top: 0.4rem; }
-  nav button, .pie button, .pie select {
+  nav button, .pie button {
     font: inherit;
     border: 0;
     border-radius: 12px;
@@ -57,14 +57,39 @@
     font-size: 0.82rem;
   }
   nav button.on { background: rgba(255,255,255,0.14); color: #fff; }
-  .pie { margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.4rem; }
-  .pie select, .pie button {
+  .pie { margin-top: auto; width: 100%; }
+  .pie button {
     width: 100%;
     background: #2a3858;
     color: #fff;
-    padding: 0.55rem 0.3rem;
+    padding: 0.7rem 0.3rem;
     font-weight: 700;
-    font-size: 0.78rem;
+    font-size: 0.82rem;
+  }
+  .pie button.on { background: rgba(255,255,255,0.14); }
+  .ajustes { max-width: 420px; display: flex; flex-direction: column; gap: 0.55rem; }
+  .ajustes h2 { margin: 0 0 0.2rem; color: var(--ink); font-size: 1rem; }
+  .sonido {
+    text-align: left;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    font: inherit;
+    font-weight: 750;
+    cursor: pointer;
+  }
+  .sonido.on { border-color: var(--navy); background: #eef2f8; }
+  .probar-sonido {
+    margin-top: 0.35rem;
+    min-height: 48px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--navy);
+    color: #fff;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
   }
   .lienzo { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .tope {
@@ -160,14 +185,7 @@
     <button type="button" data-vista="quejas">Quejas</button>
   </nav>
   <div class="pie">
-    <select id="tipo-sonido" aria-label="Sonido del aviso">
-      <option value="alarma">Alarma</option>
-      <option value="timbre">Timbre</option>
-      <option value="sirena">Sirena</option>
-      <option value="campana">Campana</option>
-      <option value="golpes">Golpes</option>
-    </select>
-    <button type="button" id="btn-sonido">Probar</button>
+    <button type="button" id="btn-ajustes">Ajustes</button>
   </div>
 </aside>
 <div class="lienzo">
@@ -198,37 +216,66 @@ const sub = document.getElementById("sub");
 const cuenta = document.getElementById("cuenta");
 const titulo = document.getElementById("titulo");
 const flash = document.getElementById("flash");
-const btnSonido = document.getElementById("btn-sonido");
-const tipoSonidoEl = document.getElementById("tipo-sonido");
-if ([...tipoSonidoEl.options].some((o) => o.value === tipoSonido)) tipoSonidoEl.value = tipoSonido;
-tipoSonidoEl.onchange = () => {
-  tipoSonido = tipoSonidoEl.value;
-  localStorage.setItem(SONIDO_KEY, tipoSonido);
-  activarSonido();
-};
+const btnAjustes = document.getElementById("btn-ajustes");
+const sonidos = [
+  ["alarma", "Alarma"],
+  ["timbre", "Timbre"],
+  ["sirena", "Sirena"],
+  ["campana", "Campana"],
+  ["golpes", "Golpes"]
+];
+if (!sonidos.some((s) => s[0] === tipoSonido)) tipoSonido = "alarma";
+
+function marcarMenus() {
+  document.querySelectorAll("nav button").forEach((x) => x.classList.toggle("on", x.dataset.vista === vista));
+  btnAjustes.classList.toggle("on", vista === "ajustes");
+}
 
 document.querySelectorAll("nav button").forEach((b) => {
   b.onclick = () => {
     vista = b.dataset.vista;
-    document.querySelectorAll("nav button").forEach((x) => x.classList.toggle("on", x === b));
+    marcarMenus();
     conocidos = null;
     cargar();
   };
 });
+
+btnAjustes.onclick = () => {
+  vista = "ajustes";
+  marcarMenus();
+  cargar();
+};
 
 function activarSonido() {
   sonido = true;
   audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
   audioCtx.resume();
   tono();
-  btnSonido.textContent = "Listo";
 }
 
-btnSonido.onclick = activarSonido;
+function pintarAjustes() {
+  titulo.textContent = "Ajustes";
+  sub.textContent = "Elige el sonido del aviso";
+  cuenta.textContent = "";
+  app.innerHTML = `<div class="ajustes">
+    <h2>Sonido</h2>
+    ${sonidos.map(([id, nombre]) => `<button type="button" class="sonido ${id === tipoSonido ? "on" : ""}" data-sonido="${id}">${nombre}</button>`).join("")}
+    <button type="button" class="probar-sonido" id="probar-sonido">Probar sonido</button>
+  </div>`;
+  app.querySelectorAll(".sonido").forEach((b) => {
+    b.onclick = () => {
+      tipoSonido = b.dataset.sonido;
+      localStorage.setItem(SONIDO_KEY, tipoSonido);
+      activarSonido();
+      pintarAjustes();
+    };
+  });
+  document.getElementById("probar-sonido").onclick = activarSonido;
+}
 
 document.getElementById("btn-prueba").onclick = async () => {
   if (!clave) return alert("Primero pega la clave pública.");
-  if (!sonido) btnSonido.click();
+  if (!sonido) activarSonido();
   const r = await api("pedidos_telefono", {
     method: "POST",
     body: JSON.stringify({
@@ -407,6 +454,8 @@ async function cargarQuejas() {
 }
 
 async function cargar() {
+  if (!clave && vista !== "ajustes") { pintarSetup(); return; }
+  if (vista === "ajustes") return pintarAjustes();
   if (!clave) { pintarSetup(); return; }
   if (vista === "quejas") return cargarQuejas();
   const r = await api("pedidos_telefono?select=*&order=creado.desc&limit=200");
