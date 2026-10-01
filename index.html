@@ -206,6 +206,7 @@ const CLAVE_KEY = "angie-tablet-anon";
 const SONIDO_KEY = "angie-tablet-sonido";
 let clave = localStorage.getItem(CLAVE_KEY) || "";
 let vista = "curso";
+let ajustesPintado = false;
 let sonido = false;
 let tipoSonido = localStorage.getItem(SONIDO_KEY) || "alarma";
 let conocidos = null;
@@ -242,6 +243,7 @@ document.querySelectorAll("nav button").forEach((b) => {
 
 btnAjustes.onclick = () => {
   vista = "ajustes";
+  ajustesPintado = false;
   marcarMenus();
   cargar();
 };
@@ -454,12 +456,22 @@ async function cargarQuejas() {
 }
 
 async function cargar() {
-  if (!clave && vista !== "ajustes") { pintarSetup(); return; }
-  if (vista === "ajustes") return pintarAjustes();
-  if (!clave) { pintarSetup(); return; }
+  if (!clave) {
+    if (vista === "ajustes") {
+      if (!ajustesPintado) { pintarAjustes(); ajustesPintado = true; }
+      return;
+    }
+    pintarSetup();
+    return;
+  }
+  if (vista === "ajustes" && !ajustesPintado) { pintarAjustes(); ajustesPintado = true; }
   if (vista === "quejas") return cargarQuejas();
   const r = await api("pedidos_telefono?select=*&order=creado.desc&limit=200");
-  if (!r.ok) { pintarSetup("Esa clave no pudo leer los pedidos. Usa la clave pública, no la secreta."); return; }
+  if (!r.ok) {
+    if (vista === "ajustes") return;
+    pintarSetup("Esa clave no pudo leer los pedidos. Usa la clave pública, no la secreta.");
+    return;
+  }
   const rows = Array.isArray(r.data) ? r.data : [];
   const hoy = dia();
   const pendientes = rows.filter((p) => p.estado === "pendiente");
@@ -476,7 +488,8 @@ async function cargar() {
       setTimeout(() => flash.classList.remove("show"), 4000);
     }
   }
-  if (vista === "curso") conocidos = ids;
+  if (vista === "curso" || vista === "ajustes") conocidos = ids;
+  if (vista === "ajustes") return;
 
   if (vista === "cerrados") {
     titulo.textContent = "Cerrados hoy";
