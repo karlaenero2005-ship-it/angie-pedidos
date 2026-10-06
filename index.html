@@ -252,6 +252,7 @@
   <div class="flash" id="flash">Llegó un pedido</div>
   <main id="app"></main>
 </div>
+<button type="button" id="activar-sonido" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:50;border:none;border-radius:999px;padding:16px 28px;font-size:18px;font-weight:700;color:#fff;background:#1f3b63;box-shadow:0 6px 20px rgba(0,0,0,.25);cursor:pointer">🔔 Toca para activar el sonido de avisos</button>
 <div class="fondo" id="confirmar" hidden>
   <div class="dialogo" role="dialog" aria-modal="true" aria-labelledby="confirmar-texto">
     <p id="confirmar-texto">¿Cancelar este pedido?</p>
@@ -598,7 +599,7 @@ async function cargar() {
     for (const id of ids) if (!conocidos.has(id)) nuevos.add(id);
     if (nuevos.size) {
       flash.classList.add("show");
-      if (sonido) tono();
+      sonarAviso();
       setTimeout(() => flash.classList.remove("show"), 4000);
     }
   }
@@ -635,6 +636,52 @@ async function cargar() {
     b.onclick = () => abrirCancelar(b.dataset.id, b.dataset.num, b.dataset.nombre);
   });
 }
+
+const btnActivar = document.getElementById("activar-sonido");
+
+function indicarSonido() {
+  if (!btnActivar) return;
+  if (sonido) {
+    btnActivar.textContent = "🔔 Sonido activado";
+    btnActivar.style.background = "#1e7d4f";
+    btnActivar.style.opacity = "0.85";
+  } else {
+    btnActivar.textContent = "🔔 Toca para activar el sonido de avisos";
+    btnActivar.style.background = "#1f3b63";
+    btnActivar.style.opacity = "1";
+  }
+}
+
+function armarSonido(conTono) {
+  audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+  const seguir = () => {
+    sonido = true;
+    indicarSonido();
+    if (conTono) tono();
+  };
+  const p = audioCtx.resume();
+  if (p && typeof p.then === "function") p.then(seguir).catch(seguir);
+  else seguir();
+}
+
+// Suena el aviso de pedido nuevo (reanuda el audio por si se suspendio)
+function sonarAviso() {
+  if (!sonido || !audioCtx) return;
+  const disparar = () => { tono(); setTimeout(tono, 1200); };
+  if (audioCtx.state === "suspended") {
+    const p = audioCtx.resume();
+    if (p && typeof p.then === "function") p.then(disparar).catch(disparar);
+    else disparar();
+  } else {
+    disparar();
+  }
+}
+
+if (btnActivar) btnActivar.onclick = () => armarSonido(true);
+// Cualquier toque en la pantalla arma el audio (requisito del navegador)
+document.addEventListener("pointerdown", () => { if (!sonido) armarSonido(false); });
+// Mantener vivo el contexto de audio en kioskos
+setInterval(() => { if (sonido && audioCtx && audioCtx.state === "suspended") audioCtx.resume(); }, 5000);
 
 cargar();
 setInterval(cargar, 4000);
