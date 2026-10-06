@@ -277,6 +277,7 @@ let clave = localStorage.getItem(CLAVE_KEY) || CLAVE_DEFAULT;
 try { if (!localStorage.getItem(CLAVE_KEY)) localStorage.setItem(CLAVE_KEY, CLAVE_DEFAULT); } catch {}
 let vista = "curso";
 let ajustesPintado = false;
+let setupPintado = false;
 let sonido = false;
 let tipoSonido = localStorage.getItem(SONIDO_KEY) || "alarma";
 let sonidoElegido = tipoSonido;
@@ -450,29 +451,41 @@ async function api(path, opts = {}) {
   return { ok: true, data };
 }
 
+function entrarConClave(v) {
+  const limpia = String(v || "").replace(/\s+/g, "");
+  if (!limpia) return;
+  try { localStorage.setItem(CLAVE_KEY, limpia); } catch {}
+  clave = limpia;
+  conocidos = null;
+  setupPintado = false;
+  cargar();
+}
+
 function pintarSetup(msg) {
+  // No redibujar si ya está la pantalla y el usuario escribe (el teclado se cerraría)
+  const foco = document.activeElement;
+  if (setupPintado && document.getElementById("usar-default") && foco && (foco.id === "clave" || foco.closest(".setup"))) {
+    const err = document.querySelector(".setup .err");
+    if (msg && err) err.textContent = msg;
+    else if (msg && !err) {
+      const p = document.createElement("p");
+      p.className = "err";
+      p.textContent = msg;
+      document.querySelector(".setup")?.appendChild(p);
+    }
+    return;
+  }
   diaInput.classList.remove("ver");
   titulo.textContent = "Pedidos de hoy";
   sub.textContent = "Falta la clave pública";
   cuenta.textContent = "–";
   app.innerHTML = `<div class="setup">
-    <label>Clave pública</label>
-    <p class="hint">Si pide clave, usa la pública <strong>anon</strong> de Supabase. En tablets a veces falla el pegado: toca <strong>Usar clave de esta cuenta</strong>.</p>
-    <textarea id="clave" rows="4" autocomplete="off" placeholder="eyJ..." style="width:100%;font:inherit;padding:0.75rem;border-radius:12px;border:1px solid var(--line);resize:vertical"></textarea>
-    <button class="primary" id="usar-default" type="button">Usar clave de esta cuenta</button>
-    <button class="primary" id="guardar-clave" type="button" style="margin-top:0.45rem;background:#3a4d6b">Guardar la que pegué</button>
+    <p class="hint">Toca el botón para entrar. No hace falta pegar ni escribir la clave.</p>
+    <button class="primary" id="usar-default" type="button">Entrar a pedidos</button>
     ${msg ? `<p class="err">${esc(msg)}</p>` : ""}
   </div>`;
-  const entrar = (v) => {
-    const limpia = String(v || "").replace(/\s+/g, "");
-    if (!limpia) return;
-    try { localStorage.setItem(CLAVE_KEY, limpia); } catch {}
-    clave = limpia;
-    conocidos = null;
-    cargar();
-  };
-  document.getElementById("usar-default").onclick = () => entrar(CLAVE_DEFAULT);
-  document.getElementById("guardar-clave").onclick = () => entrar(document.getElementById("clave").value);
+  document.getElementById("usar-default").onclick = () => entrarConClave(CLAVE_DEFAULT);
+  setupPintado = true;
 }
 
 function ticket(p, nueva, accion) {
@@ -578,7 +591,7 @@ async function cargar() {
       if (!ajustesPintado) { pintarAjustes(); ajustesPintado = true; }
       return;
     }
-    pintarSetup();
+    if (!setupPintado) pintarSetup();
     return;
   }
   if (vista === "ajustes" && !ajustesPintado) { pintarAjustes(); ajustesPintado = true; }
@@ -586,9 +599,16 @@ async function cargar() {
   const r = await api("pedidos_telefono?select=*&order=creado.desc&limit=500");
   if (!r.ok) {
     if (vista === "ajustes") return;
-    pintarSetup("Esa clave no pudo leer los pedidos. Usa la clave pública, no la secreta.");
+    // Si la clave guardada está cortada/mala, usa la de esta cuenta y reintenta una vez
+    if (clave !== CLAVE_DEFAULT) {
+      clave = CLAVE_DEFAULT;
+      try { localStorage.setItem(CLAVE_KEY, CLAVE_DEFAULT); } catch {}
+      return cargar();
+    }
+    if (!setupPintado) pintarSetup("No se pudieron leer los pedidos. Toca Entrar a pedidos.");
     return;
   }
+  setupPintado = false;
   const rows = Array.isArray(r.data) ? r.data : [];
   const hoy = dia();
   if (!diaHistorial) diaHistorial = hoy;
