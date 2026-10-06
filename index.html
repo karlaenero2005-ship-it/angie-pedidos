@@ -252,7 +252,6 @@
   <div class="flash" id="flash">Llegó un pedido</div>
   <main id="app"></main>
 </div>
-<button type="button" id="activar-sonido" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:50;border:none;border-radius:999px;padding:16px 28px;font-size:18px;font-weight:700;color:#fff;background:#1f3b63;box-shadow:0 6px 20px rgba(0,0,0,.25);cursor:pointer">🔔 Toca para activar el sonido de avisos</button>
 <div class="fondo" id="confirmar" hidden>
   <div class="dialogo" role="dialog" aria-modal="true" aria-labelledby="confirmar-texto">
     <p id="confirmar-texto">¿Cancelar este pedido?</p>
@@ -266,12 +265,16 @@
 const PROYECTO = "https://pambysjusmroryomhiwt.supabase.co";
 const CLAVE_KEY = "angie-tablet-anon";
 const SONIDO_KEY = "angie-tablet-sonido";
+const PAUSA_KEY = "angie-tablet-pausa";
 let clave = localStorage.getItem(CLAVE_KEY) || "";
 let vista = "curso";
 let ajustesPintado = false;
 let sonido = false;
 let tipoSonido = localStorage.getItem(SONIDO_KEY) || "alarma";
 let sonidoElegido = tipoSonido;
+let pausa = parseFloat(localStorage.getItem(PAUSA_KEY));
+if (!(pausa >= 0)) pausa = 1;
+let pausaElegida = pausa;
 let cancelarId = null;
 let conocidos = null;
 let audioCtx = null;
@@ -292,6 +295,12 @@ const sonidos = [
   ["golpes", "Golpes"]
 ];
 if (!sonidos.some((s) => s[0] === tipoSonido)) tipoSonido = "alarma";
+const pausas = [
+  [0, "Una sola vez"],
+  [1, "1 segundo"],
+  [2, "2 segundos"],
+  [3, "3 segundos"]
+];
 
 function marcarMenus() {
   document.querySelectorAll("nav button").forEach((x) => x.classList.toggle("on", x.dataset.vista === vista));
@@ -315,13 +324,6 @@ btnAjustes.onclick = () => {
   cargar();
 };
 
-function activarSonido() {
-  sonido = true;
-  audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-  audioCtx.resume();
-  tono();
-}
-
 function pintarAjustes() {
   titulo.textContent = "Ajustes";
   sub.textContent = "Elige el sonido del aviso";
@@ -329,24 +331,37 @@ function pintarAjustes() {
   app.innerHTML = `<div class="ajustes">
     <h2>Sonido</h2>
     ${sonidos.map(([id, nombre]) => `<button type="button" class="sonido ${id === sonidoElegido ? "on" : ""}" data-sonido="${id}">${nombre}</button>`).join("")}
+    <h2>Silencio entre avisos</h2>
+    ${pausas.map(([val, nombre]) => `<button type="button" class="sonido ${val === pausaElegida ? "on" : ""}" data-pausa="${val}">${nombre}</button>`).join("")}
     <button type="button" class="probar-sonido" id="probar-sonido">Probar sonido</button>
     <button type="button" class="guardar-cambios" id="guardar-sonido">Guardar cambios</button>
   </div>`;
-  app.querySelectorAll(".sonido").forEach((b) => {
+  app.querySelectorAll("[data-sonido]").forEach((b) => {
     b.onclick = () => {
       sonidoElegido = b.dataset.sonido;
       pintarAjustes();
     };
   });
+  app.querySelectorAll("[data-pausa]").forEach((b) => {
+    b.onclick = () => {
+      pausaElegida = parseFloat(b.dataset.pausa);
+      pintarAjustes();
+    };
+  });
   document.getElementById("probar-sonido").onclick = () => {
-    const anterior = tipoSonido;
-    tipoSonido = sonidoElegido;
-    activarSonido();
-    tipoSonido = anterior;
+    armarSonido(false);
+    const reproducir = () => {
+      tono(sonidoElegido);
+      if (pausaElegida > 0) setTimeout(() => tono(sonidoElegido), pausaElegida * 1000);
+    };
+    if (audioCtx && audioCtx.state !== "running") audioCtx.resume().then(reproducir).catch(reproducir);
+    else reproducir();
   };
   document.getElementById("guardar-sonido").onclick = () => {
     tipoSonido = sonidoElegido;
+    pausa = pausaElegida;
     localStorage.setItem(SONIDO_KEY, tipoSonido);
+    localStorage.setItem(PAUSA_KEY, String(pausa));
     sub.textContent = "Cambios guardados";
   };
 };
@@ -637,26 +652,10 @@ async function cargar() {
   });
 }
 
-const btnActivar = document.getElementById("activar-sonido");
-
-function indicarSonido() {
-  if (!btnActivar) return;
-  if (sonido) {
-    btnActivar.textContent = "🔔 Sonido activado";
-    btnActivar.style.background = "#1e7d4f";
-    btnActivar.style.opacity = "0.85";
-  } else {
-    btnActivar.textContent = "🔔 Toca para activar el sonido de avisos";
-    btnActivar.style.background = "#1f3b63";
-    btnActivar.style.opacity = "1";
-  }
-}
-
 function armarSonido(conTono) {
   audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
   const seguir = () => {
     sonido = true;
-    indicarSonido();
     if (conTono) tono();
   };
   const p = audioCtx.resume();
@@ -667,7 +666,10 @@ function armarSonido(conTono) {
 // Suena el aviso de pedido nuevo (reanuda el audio por si se suspendio)
 function sonarAviso() {
   if (!sonido || !audioCtx) return;
-  const disparar = () => { tono(); setTimeout(tono, 1200); };
+  const disparar = () => {
+    tono();
+    if (pausa > 0) setTimeout(tono, pausa * 1000);
+  };
   if (audioCtx.state === "suspended") {
     const p = audioCtx.resume();
     if (p && typeof p.then === "function") p.then(disparar).catch(disparar);
@@ -677,8 +679,7 @@ function sonarAviso() {
   }
 }
 
-if (btnActivar) btnActivar.onclick = () => armarSonido(true);
-// Cualquier toque en la pantalla arma el audio (requisito del navegador)
+// El navegador exige un gesto para habilitar audio: el primer toque lo activa
 document.addEventListener("pointerdown", () => { if (!sonido) armarSonido(false); });
 // Mantener vivo el contexto de audio en kioskos
 setInterval(() => { if (sonido && audioCtx && audioCtx.state === "suspended") audioCtx.resume(); }, 5000);
