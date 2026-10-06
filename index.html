@@ -270,9 +270,11 @@
 </div>
 <script>
 const PROYECTO = "https://pambysjusmroryomhiwt.supabase.co";
+const CLAVE_DEFAULT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhbWJ5c2p1c21yb3J5b21oaXd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4MDIwODEsImV4cCI6MjEwNjM3ODA4MX0.8N4RtDM96pejJJmHIoKWLdrkULmRIaf-yrOb0sRvVFQ";
 const CLAVE_KEY = "angie-tablet-anon";
 const SONIDO_KEY = "angie-tablet-sonido";
-let clave = localStorage.getItem(CLAVE_KEY) || "";
+let clave = localStorage.getItem(CLAVE_KEY) || CLAVE_DEFAULT;
+try { if (!localStorage.getItem(CLAVE_KEY)) localStorage.setItem(CLAVE_KEY, CLAVE_DEFAULT); } catch {}
 let vista = "curso";
 let ajustesPintado = false;
 let sonido = false;
@@ -454,20 +456,23 @@ function pintarSetup(msg) {
   sub.textContent = "Falta la clave pública";
   cuenta.textContent = "–";
   app.innerHTML = `<div class="setup">
-    <label>Clave pública de la cuenta provisional</label>
-    <p class="hint">En Supabase: Project Settings → API Keys. Pega la clave <strong>anon</strong>. No pegues la clave secreta.</p>
-    <input id="clave" autocomplete="off" placeholder="eyJ..." />
-    <button class="primary" id="guardar-clave" type="button">Guardar y entrar</button>
+    <label>Clave pública</label>
+    <p class="hint">Si pide clave, usa la pública <strong>anon</strong> de Supabase. En tablets a veces falla el pegado: toca <strong>Usar clave de esta cuenta</strong>.</p>
+    <textarea id="clave" rows="4" autocomplete="off" placeholder="eyJ..." style="width:100%;font:inherit;padding:0.75rem;border-radius:12px;border:1px solid var(--line);resize:vertical"></textarea>
+    <button class="primary" id="usar-default" type="button">Usar clave de esta cuenta</button>
+    <button class="primary" id="guardar-clave" type="button" style="margin-top:0.45rem;background:#3a4d6b">Guardar la que pegué</button>
     ${msg ? `<p class="err">${esc(msg)}</p>` : ""}
   </div>`;
-  document.getElementById("guardar-clave").onclick = () => {
-    const v = document.getElementById("clave").value.trim();
-    if (!v) return;
-    localStorage.setItem(CLAVE_KEY, v);
-    clave = v;
+  const entrar = (v) => {
+    const limpia = String(v || "").replace(/\s+/g, "");
+    if (!limpia) return;
+    try { localStorage.setItem(CLAVE_KEY, limpia); } catch {}
+    clave = limpia;
     conocidos = null;
     cargar();
   };
+  document.getElementById("usar-default").onclick = () => entrar(CLAVE_DEFAULT);
+  document.getElementById("guardar-clave").onclick = () => entrar(document.getElementById("clave").value);
 }
 
 function ticket(p, nueva, accion) {
